@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.main'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web scraping library
+    implementation 'org.jsoup:jsoup:1.17.2'
+
+    // Mail library (Eclipse Angus implementation for Jakarta Mail)
+    implementation 'org.eclipse.angus:jakarta.mail:2.0.3'
+    // JSON parsing for API responses
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+}
+
+application {
+    mainClass = 'com.main.GoldRateNotifier'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
