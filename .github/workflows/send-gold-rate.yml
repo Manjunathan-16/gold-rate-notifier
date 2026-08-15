@@ -41,17 +41,19 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew || true
 
-      - name: Build and run project (use wrapper if present, otherwise install Gradle)
+      - name: Build and run project (use wrapper if present, otherwise download Gradle 8.14)
         run: |
           set -e
+          GRADLE_VERSION=8.14
           if [ -x "./gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ]; then
             echo "Using repository Gradle wrapper"
             ./gradlew --no-daemon build
             ./gradlew --no-daemon run
           else
-            echo "Gradle wrapper missing or incomplete; installing Gradle via apt-get"
-            sudo apt-get update -y
-            sudo apt-get install -y gradle
+            echo "Gradle wrapper missing or incomplete; downloading Gradle ${GRADLE_VERSION}"
+            wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -O gradle.zip
+            unzip -q gradle.zip -d gradle-dist
+            export PATH="$PWD/gradle-dist/gradle-${GRADLE_VERSION}/bin:$PATH"
             gradle --version
             gradle --no-daemon build
             gradle --no-daemon run
