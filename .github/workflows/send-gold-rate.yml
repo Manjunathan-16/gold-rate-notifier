@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   schedule:
     # Runs daily at 04:30 UTC (which is 10:00 IST). Change the cron if you want a different timezone/time.
-    - cron: '30 4 * * *'
+    # - cron: '30 4 * * *'
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: read
