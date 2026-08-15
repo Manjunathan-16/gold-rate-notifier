@@ -36,32 +36,23 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: '8.14'
+      # (No separate Gradle setup step; the repository includes a Gradle wrapper `gradlew`.)
 
-      - name: Build project
-        run: gradle --no-daemon build
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew || true
 
-      - name: Run gold rate notifier
-        # The application reads configuration from environment variables / Secrets defined above
-        run: gradle --no-daemon run
-
-      - name: Prepare Pages content
+      - name: Build and run project (use wrapper if present, otherwise install Gradle)
         run: |
-          mkdir -p public
-          # If the build produces a static HTML snapshot, publish it as the site index
-          if [ -f build/bhima-today.html ]; then cp build/bhima-today.html public/index.html; fi
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: public
-
-  deploy-pages:
-    needs: run-and-deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+          set -e
+          if [ -x "./gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Using repository Gradle wrapper"
+            ./gradlew --no-daemon build
+            ./gradlew --no-daemon run
+          else
+            echo "Gradle wrapper missing or incomplete; installing Gradle via apt-get"
+            sudo apt-get update -y
+            sudo apt-get install -y gradle
+            gradle --version
+            gradle --no-daemon build
+            gradle --no-daemon run
+          fi
