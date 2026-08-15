@@ -1,31 +1,67 @@
-name: Daily Gold Rate Email
+name: Send Gold Rate and Deploy Site
 
 on:
+  workflow_dispatch:
   schedule:
-    # Runs at 10:00 AM IST every day (4:30 AM UTC)
+    # Runs daily at 04:30 UTC (which is 10:00 IST). Change the cron if you want a different timezone/time.
     - cron: '30 4 * * *'
-  workflow_dispatch: # Allows manual run from GitHub UI
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  run-gradle:
+  run-and-deploy:
     runs-on: ubuntu-latest
-
+    env:
+      # Variables used by the Java application (set these as repository Secrets in GitHub)
+      SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+      SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+      RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+      # Optional / legacy variables (not currently used by the Java code but kept for compatibility)
+      TARGET_URL: ${{ secrets.TARGET_URL }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: '8.14'
 
-      - name: Run Application with Gradle
-        env:
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
-        run: ./gradlew run
+      - name: Build project
+        run: gradle --no-daemon build
+
+      - name: Run gold rate notifier
+        # The application reads configuration from environment variables / Secrets defined above
+        run: gradle --no-daemon run
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p public
+          # If the build produces a static HTML snapshot, publish it as the site index
+          if [ -f build/bhima-today.html ]; then cp build/bhima-today.html public/index.html; fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: public
+
+  deploy-pages:
+    needs: run-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1
