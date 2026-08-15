@@ -14,9 +14,9 @@ public class GoldRateNotifier {
 
     public static void main(String[] args) {
         // Reads secrets from environment variables (used locally or via GitHub Actions)
-        String senderEmail = System.getenv("manja21ms@gmail.com");
+        String senderEmail = System.getenv("SENDER_EMAIL");
         String senderPassword = System.getenv("SENDER_PASSWORD");
-        String recipientEmail = "manja21ms@gmail.com"; // Set your target email here
+        String recipientEmail = System.getenv("RECIPIENT_EMAIL");
 
         String rateText = fetchGoldRate();
         // Print fetched rate HTML/text for testing
@@ -24,8 +24,12 @@ public class GoldRateNotifier {
         System.out.println(rateText);
         System.out.println("--- End fetched output ---");
 
-        // Email sending is commented out during testing to avoid accidental sends
-        // sendEmail(senderEmail, senderPassword, recipientEmail, "Daily Bhima Gold Rate Update", rateText);
+        // Send email
+        if (senderEmail != null && senderPassword != null && recipientEmail != null) {
+            sendEmail(senderEmail, senderPassword, recipientEmail, "Daily Bhima Gold Rate Update", rateText);
+        } else {
+            System.out.println("Missing email configuration. Set SENDER_EMAIL, SENDER_PASSWORD, and RECIPIENT_EMAIL environment variables.");
+        }
     }
 
     private static String fetchGoldRate() {
